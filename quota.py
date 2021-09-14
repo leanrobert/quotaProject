@@ -36,8 +36,9 @@ def generarArchivos():
     file.writelines(jumpRules)
     file.writelines(clientRules)
     file.writelines(footer)
-
-    os.system('sudo /sbin/iptables-restore -T mangle /home/sistemas/lrobert/endpoint/quota.txt')
+    print('Hasta aca se genero el texto')
+    os.system('sudo /sbin/iptables-restore -T mangle < /home/sistemas/lrobert/endpoint/quota.txt')
+    print('Hasta aca se deberia haber corrido iptables-restore')
 
 def escribirReglas(ips, network):
     ipsSi = []

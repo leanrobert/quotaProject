@@ -1,5 +1,6 @@
-import re, os, ipaddress
-from flask import Flask, json, jsonify, request
+import re, os, ipaddress, subprocess
+from typing import NewType
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
@@ -18,24 +19,12 @@ def get_quota_by_ip(clientIp):
 def reset_quota():
     os.system('sudo /sbin/iptables -t mangle -F')
     os.system('sudo /sbin/iptables -t mangle -X')
-    os.system('sudo /sbin/iptables-save -f /home/sistemas/lrobert/endpoint/quota.txt')
-    os.system('sudo /sbin/iptables-save -f /home/sistemas/lrobert/endpoint/counters.txt')
+    os.system('sudo /sbin/iptables-save -t mangle -f /home/sistemas/lrobert/endpoint/quota.txt')
+    os.system('sudo /sbin/iptables-save -t mangle -f /home/sistemas/lrobert/endpoint/counters.txt')
     return(jsonify({ 'message': 'Ips reseteadas con exito'}))
 
 @app.route('/generate', methods=['POST'])
 def create_node_rules():
-    data = request.get_json()
-    ips = data.get("ips")
-    subnet = data.get("subnet")
-
-    markRules = []
-    jumpRules = []
-    clientRules = []
-
-    network = ipaddress.IPv4Network(f'10.{str(subnet)}.0.0/16')
-    jumpGeneralRule = f'-A PREROUTING -j {network}\n'
-    markRules.append(f':{str(network)} - [0:0]\n')
-
     def generarArchivos():
         readfile = open("quota.txt", "r")
         readed = readfile.readlines()
@@ -46,12 +35,10 @@ def create_node_rules():
         file = open("quota.txt", "w")
         file.writelines(header)
         file.writelines(markRules)
-        file.write(jumpGeneralRule)
+        file.writelines(jumpGeneralRule)
         file.writelines(jumpRules)
         file.writelines(clientRules)
         file.writelines(footer)
-
-        os.system('sudo /sbin/iptables-restore -T mangle /home/sistemas/lrobert/endpoint/quota.txt')
 
     def escribirReglas(ips, network):
         ipsSi = []
@@ -82,15 +69,34 @@ def create_node_rules():
                     clientRules.append(f'-A {str(network)} -s {str(ip)}/32 -j ACCEPT\n')
                 return
 
-        generarArchivos()
+    markRules = []
+    jumpRules = []
+    clientRules = []
+    jumpGeneralRule = []
 
-    escribirReglas(ips, network)
+    nodos = request.get_json()
+    for subnet in nodos:
+        network = ipaddress.IPv4Network(f'10.{str(subnet)}.0.0/16')
+        jumpGeneralRule.append(f'-A PREROUTING -j {network}\n')
+        markRules.append(f':{str(network)} - [0:0]\n')
+        escribirReglas(nodos[subnet], network)   
+
+    generarArchivos()
+    return(jsonify({ 'message': 'reglas de mangle creadas con exito'}))
+
+@app.route('/apply', methods=['POST'])
+def apply_iptables_rules():
+    cmd = ["sudo", "/sbin/iptables-restore", "-T", "mangle", "quota.txt"]
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    process.communicate()
+    return jsonify({ 'message': 'iptables executed'})
 
 @app.route('/test', methods=['GET', 'POST'])
 def test():
-    data = request.get_json()
-    subnet = data["subnet"]
-    return(f'<h1>{((data.get("subnet")))}</h1>')
+    nodos = request.get_json()
+    for subnet in nodos:
+        print(f'la red es {subnet} y tiene las ips {nodos[subnet]}')
+    return(f'<h1>{nodos}</h1>')
 
 
 '''Hasta el momento el problema esta con la creacion de los archivos y permisos, el siguiente paso
