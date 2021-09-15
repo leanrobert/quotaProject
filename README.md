@@ -70,5 +70,22 @@ Y la modificamos por
 
     tail -f /var/log/apache2/error.log
 
-
 ### Endpoints de la app
+
+#### GET
+- /quota/<\clienteIp>
+
+Este endpoint recibe una ip como parametro en el header, devuelve el contador de bytes actuales en su cola
+
+#### POST
+- /reset
+
+Este endpoint se encarga de vaciar las reglas de iptables en mangle y crear los archivos quota y counters para los otros endpoints
+
+- /generate
+
+Este endpoint genera los archivos a utilizar por iptables-restore, organizandolos de la forma correcta para optimizar las reglas y saltos
+
+- /apply
+
+Este endpoint aplica las configuracion de los archivos generados por /generate 
