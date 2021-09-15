@@ -6,51 +6,48 @@ Poryecto dedicado al control de ancho de quota de ancho de banda para clientes p
 
 ### Manual de instalacion
 Son necesarias las siguientes versiones instaladas:
-Python 3.8.10
-Flask 2.0.1
-Werkzeug 2.0.1
 
 1. Instalar dependencias
-    
-    apt-get install python3-pip apache2 libapache2-mod-wsgi-py3
-    pip3 install Flask
-    pip3 install ipaddress
+
+       apt-get install python3-pip apache2 libapache2-mod-wsgi-py3
+       pip3 install Flask
+       pip3 install ipaddress
 
 2. Descargar la aplicacion de NAS Server
 
-    scp -r root@172.27.1.10:/mnt/pruebaRaid/quota /var/www/quota
-    cd /var/www/quota
-    nano quota.wsgi
+       scp -r root@172.27.1.10:/mnt/pruebaRaid/quota /var/www/quota
+       cd /var/www/quota
+       nano quota.wsgi
 
 3. Dentro del archivo wsgi escribimos lo siguiente
 
-    import sys
-    sys.path.insert(0, "/var/www/quota")
-    from app import app as application
+       import sys
+       sys.path.insert(0, "/var/www/quota")
+       from app import app as application
 
 4. Editamos sitios disponibles de apache
 
-    cd /etc/apache2/sites-available/
-    nano quota.conf
+       cd /etc/apache2/sites-available/
+       nano quota.conf
 
 5. Dentro de quota.conf colocar lo siguiente
 
-    <VirtualHost *>
-        WSGIScriptAlias / /var/www/quota/quota.wsgi
-        WSGIDaemonProcess quota
-        <Directory /var/www/quota>
-        WSGIProcessGroup quota
-        WSGIApplicationGroup %{GLOBAL}
-            Order deny,allow
-            Allow from all
-        </Directory>
-    </VirtualHost>
+        <VirtualHost *>
+            WSGIScriptAlias / /var/www/quota/quota.wsgi
+            WSGIDaemonProcess quota
+            <Directory /var/www/quota>
+            WSGIProcessGroup quota
+            WSGIApplicationGroup %{GLOBAL}
+                Order deny,allow
+                Allow from all
+            </Directory>
+        </VirtualHost>
 
 6. Ejecutamos los siguientes 3 comandos
 
-    a2dissite 000-default.conf
-    a2ensite quota.conf
-    service apache2 reload
+        a2dissite 000-default.conf
+        a2ensite quota.conf
+        service apache2 reload
 
 7. Permisos
 
@@ -68,12 +65,12 @@ Y la modificamos por
 
 7. Si todo sale bien el endpoint deberia ser alcanzable el servicio esta en funcionamiento, para debuggear podemos corroboar en el fichero de logs de apache
 
-    tail -f /var/log/apache2/error.log
+        tail -f /var/log/apache2/error.log
 
 ### Endpoints de la app
 
 #### GET
-- /quota/<\clienteIp>
+- /quota/clienteIp
 
 Este endpoint recibe una ip como parametro en el header, devuelve el contador de bytes actuales en su cola
 
